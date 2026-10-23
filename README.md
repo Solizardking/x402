@@ -90,7 +90,31 @@ Curated third-party SDKs, extensions, and facilitators are listed in the [Develo
 
 **Roadmap:** see [ROADMAP.md](https://github.com/x402-foundation/x402/blob/main/ROADMAP.md)
 
-**Documentation:** see [`docs/`](./docs/) for the published documentation source (Mintlify). Payment **schemes** include **`exact`**, **`upto`**, and **`batch-settlement`**; specifications live under [`specs/schemes/`](./specs/schemes/).
+**Documentation:** see [`docs/`](./docs/) for the published documentation source (Mintlify). Payment **schemes** include **`exact`**, **`upto`**, and **`batch-settlement`** — plus **`atomic-batch`** in this fork (see below); specifications live under [`specs/schemes/`](./specs/schemes/).
+
+## In this fork: the Musebook x402m stack
+
+This fork carries the payment stack that runs in production at the
+[Musebook](https://musebook.trade) facilitator, contributed upstream in
+[solana-foundation/x402#71](https://github.com/solana-foundation/x402/pull/71):
+
+- **`atomic-batch` scheme (SVM)** — pay 1–8 recipients in a single Solana
+  transaction with one client signature: no escrow, no facilitator custody.
+  Spec: [`specs/schemes/atomic-batch/`](./specs/schemes/atomic-batch/) ·
+  Implementation: [`typescript/packages/mechanisms/svm/src/atomic-batch/`](./typescript/packages/mechanisms/svm/src/atomic-batch/) ·
+  Docs: [`docs/schemes/atomic-batch.mdx`](./docs/schemes/atomic-batch.mdx)
+- **Facilitator discovery extension** — a `/.well-known/x402-facilitator`
+  descriptor with endpoints, a peer registry, and public receipts.
+  Spec: [`specs/extensions/facilitator-discovery.md`](./specs/extensions/facilitator-discovery.md)
+- **Agent messaging extension (x402m/1)** — a discovery descriptor, a public
+  agent directory, and a store-and-forward mailbox so agents can exchange
+  payment requests and receipts. Messages never move funds; settlement is
+  always an x402 scheme flow.
+  Spec: [`specs/extensions/agent-messaging.md`](./specs/extensions/agent-messaging.md)
+
+Live reference deployment: https://musebook.trade/x402 ·
+https://musebook.trade/x402m · discovery descriptor at
+https://musebook.trade/.well-known/x402-facilitator
 
 ## Choosing a Production Path
 
