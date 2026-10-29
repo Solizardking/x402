@@ -1,10 +1,8 @@
 import { findAssociatedTokenPda } from "@solana-program/token-2022";
 import {
-  getAddressEncoder,
   getBase58Decoder,
   getBase64Encoder,
   getCompiledTransactionMessageDecoder,
-  verifySignature,
   type Address,
   type Transaction,
 } from "@solana/kit";
@@ -24,14 +22,16 @@ import type { AtomicBatchSvmPayloadV2 } from "../../types";
 import {
   createRpcClient,
   decodeTransactionFromPayload,
+  isAcceptedTransactionVersion,
   normalizeNetwork,
+  peekWireTransactionVersion,
   transactionMessageHash,
 } from "../../utils";
+import { verifyEd25519 } from "../../exact/facilitator/signatureVerification";
 import { parseAtomicBatchItems } from "../shared";
 import * as Errors from "./errors";
 
 const compiledMessageDecoder = getCompiledTransactionMessageDecoder();
-const addressEncoder = getAddressEncoder();
 const base58Decoder = getBase58Decoder();
 const base64Encoder = getBase64Encoder();
 
@@ -150,6 +150,11 @@ export class AtomicBatchSvmScheme implements SchemeNetworkFacilitator {
       return { isValid: false, invalidReason: Errors.ErrInvalidPayloadTransaction };
     }
 
+    const wireVersion = peekWireTransactionVersion(batchPayload.transaction);
+    if (wireVersion !== undefined && !isAcceptedTransactionVersion(wireVersion)) {
+      return { isValid: false, invalidReason: Errors.ErrUnsupportedTransactionVersion };
+    }
+
     let transaction: Transaction;
     try {
       transaction = decodeTransactionFromPayload({ transaction: batchPayload.transaction });
@@ -158,7 +163,6 @@ export class AtomicBatchSvmScheme implements SchemeNetworkFacilitator {
     }
 
     const compiled = compiledMessageDecoder.decode(transaction.messageBytes);
-    // Only legacy and v0 messages are accepted; v1 (SIMD-0385) uses a different layout.
     if (!("instructions" in compiled)) {
       return { isValid: false, invalidReason: Errors.ErrUnsupportedTransactionVersion };
     }
@@ -303,10 +307,7 @@ export class AtomicBatchSvmScheme implements SchemeNetworkFacilitator {
   ): Promise<SettleResponse> {
     const batchPayload = payload.payload as Partial<AtomicBatchSvmPayloadV2> | undefined;
 
-    // Duplicate protection keyed on the message hash, claimed
-    // synchronously before any async work (the pattern the exact SVM
-    // facilitator uses) so concurrent settles of the same batch are
-    // caught here.
+    // Claimed synchronously before any await so concurrent settles of one batch collide.
     let txKey: string | undefined;
     if (batchPayload && typeof batchPayload.transaction === "string") {
       try {
@@ -400,31 +401,5 @@ export class AtomicBatchSvmScheme implements SchemeNetworkFacilitator {
     } catch {
       return null;
     }
-  }
-}
-
-/**
- * Verifies one Ed25519 signature over the transaction message bytes
- * (same local-verification approach as the exact SVM facilitator, so
- * verify never depends on RPC `sigVerify`).
- *
- * @param address - Base58 signer address (raw 32-byte public key)
- * @param signature - 64-byte Ed25519 signature
- * @param messageBytes - Transaction message bytes the signature covers
- * @returns Whether the signature is valid
- */
-async function verifyEd25519(
-  address: string,
-  signature: Parameters<typeof verifySignature>[1],
-  messageBytes: Parameters<typeof verifySignature>[2],
-): Promise<boolean> {
-  try {
-    const publicKeyBytes = addressEncoder.encode(address as Address);
-    const publicKey = await crypto.subtle.importKey("raw", publicKeyBytes, "Ed25519", false, [
-      "verify",
-    ]);
-    return await verifySignature(publicKey, signature, messageBytes);
-  } catch {
-    return false;
   }
 }

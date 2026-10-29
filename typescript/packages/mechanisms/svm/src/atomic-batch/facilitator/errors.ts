@@ -21,8 +21,7 @@ export const ErrMissingSignatures = "invalid_atomic_batch_svm_payload_missing_si
 export const ErrSignatureInvalid = "invalid_atomic_batch_svm_payload_signature_invalid";
 export const ErrExcessiveSigners = "invalid_atomic_batch_svm_payload_excessive_signers";
 export const ErrAuthorityNotPayer = "invalid_atomic_batch_svm_payload_authority_not_payer";
-export const ErrUnsupportedTransactionVersion =
-  "invalid_atomic_batch_svm_payload_unsupported_transaction_version";
+export const ErrUnsupportedTransactionVersion = "unsupported_transaction_version";
 export const ErrInvalidBatch = "invalid_atomic_batch_svm_payload_invalid_batch";
 export const ErrItemCountMismatch = "invalid_atomic_batch_svm_payload_item_count_mismatch";
 export const ErrWrongAsset = "invalid_atomic_batch_svm_payload_wrong_asset";

@@ -125,7 +125,7 @@ checks below are the whole contract.
    `invalid_atomic_batch_svm_payload_transaction_could_not_be_decoded`.
    The message is a legacy or version 0 message; other versions
    (including v1, SIMD-0385) are rejected with
-   `invalid_atomic_batch_svm_payload_unsupported_transaction_version`.
+   `unsupported_transaction_version`.
 3. **Signature.** The message header requires exactly one signature; the
    signature at index 0 is present and is a valid Ed25519 signature by
    account 0 over the message bytes, else

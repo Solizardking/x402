@@ -32,10 +32,10 @@ import * as Errors from "../../src/atomic-batch/facilitator/errors";
 import type { AtomicBatchItem } from "../../src/types";
 import type { FacilitatorSvmSigner } from "../../src/signer";
 import { SOLANA_DEVNET_CAIP2 } from "../../src/constants";
-import { USDC_DEVNET_ADDRESS } from "../../src/defaultAssets";
+import { findDefaultAsset, USDC_DEVNET_ADDRESS } from "../../src/defaultAssets";
 
 const MINT = USDC_DEVNET_ADDRESS as Address;
-const DECIMALS = 6;
+const DECIMALS = findDefaultAsset(MINT, SOLANA_DEVNET_CAIP2)!.decimals;
 const FAKE_BLOCKHASH = {
   blockhash: "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi" as Blockhash,
   lastValidBlockHeight: 1000n,
@@ -260,6 +260,16 @@ describe("AtomicBatchSvmScheme (facilitator)", () => {
     );
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe(Errors.ErrTransactionCouldNotBeDecoded);
+  });
+
+  it("rejects a v1 (SIMD-0385) wire transaction before decoding", async () => {
+    const facilitator = new FacilitatorScheme(facilitatorSigner);
+    const requirements = batchRequirements(items);
+    const v1Wire = getBase64Codec().decode(new Uint8Array([0x81, ...new Uint8Array(64)]));
+    const result = await facilitator.verify(batchPayload(v1Wire, requirements), requirements);
+    expect(result.isValid).toBe(false);
+    expect(result.invalidReason).toBe("unsupported_transaction_version");
+    expect(facilitatorSigner.simulateTransaction).not.toHaveBeenCalled();
   });
 
   it("verifies a valid two-item batch", async () => {
